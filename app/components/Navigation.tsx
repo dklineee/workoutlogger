@@ -1,101 +1,102 @@
 'use client';
 
-import { signOut, useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { useTheme } from '../context/ThemeContext';
 
 export default function Navigation() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { theme, toggleTheme } = useTheme();
+
+  if (status === 'loading') {
+    return null;
+  }
 
   if (!session) {
     return null;
   }
 
   return (
-    <nav style={{
-      backgroundColor: `rgb(var(--primary))`,
-      padding: '1rem 1.5rem',
-      marginBottom: '2rem'
+    <nav style={{ 
+      backgroundColor: `rgb(var(--card-bg))`, 
+      padding: '1rem', 
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      borderBottom: `1px solid rgb(var(--card-border))`
     }}>
-      <div style={{
-        maxWidth: '48rem',
-        margin: '0 auto',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+      <div style={{ 
+        maxWidth: '48rem', 
+        margin: '0 auto', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center' 
       }}>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <Link
-            href="/workout-logger"
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: 'white',
-              color: `rgb(var(--primary))`,
-              borderRadius: '0.375rem',
-              fontWeight: '500',
-              textDecoration: 'none'
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+          <Link 
+            href="/workout-logger" 
+            style={{ 
+              color: `rgb(var(--text-primary))`, 
+              textDecoration: 'none',
+              fontWeight: '500'
             }}
           >
             Log Workout
           </Link>
-          <Link
-            href="/workouts"
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: 'white',
-              color: `rgb(var(--primary))`,
-              borderRadius: '0.375rem',
-              fontWeight: '500',
-              textDecoration: 'none'
+          <Link 
+            href="/workouts" 
+            style={{ 
+              color: `rgb(var(--text-primary))`, 
+              textDecoration: 'none',
+              fontWeight: '500'
             }}
           >
             View Workouts
+          </Link>
+          <Link 
+            href="/workout-program" 
+            style={{ 
+              color: `rgb(var(--text-primary))`, 
+              textDecoration: 'none',
+              fontWeight: '500'
+            }}
+          >
+            Workout Programs
           </Link>
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <button
             onClick={toggleTheme}
-            style={{
+            style={{ 
               padding: '0.5rem',
               backgroundColor: 'transparent',
-              color: 'white',
+              color: `rgb(var(--text-primary))`,
               borderRadius: '0.375rem',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
+              border: `1px solid rgb(var(--card-border))`,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}
-            aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
           >
             {theme === 'light' ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '1.25rem', height: '1.25rem' }} viewBox="0 0 20 20" fill="currentColor">
+                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
               </svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="5"></circle>
-                <line x1="12" y1="1" x2="12" y2="3"></line>
-                <line x1="12" y1="21" x2="12" y2="23"></line>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                <line x1="1" y1="12" x2="3" y2="12"></line>
-                <line x1="21" y1="12" x2="23" y2="12"></line>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '1.25rem', height: '1.25rem' }} viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
               </svg>
             )}
           </button>
-          <button
+          <button 
             onClick={() => signOut({ callbackUrl: '/' })}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: `rgb(var(--primary))`,
-              color: 'white',
-              borderRadius: '0.375rem',
+            style={{ 
+              padding: '0.5rem 1rem', 
+              backgroundColor: 'transparent', 
+              color: '#dc2626', 
+              borderRadius: '0.375rem', 
               fontWeight: '500',
-              border: 'none',
+              border: '1px solid #dc2626',
               cursor: 'pointer'
             }}
           >
