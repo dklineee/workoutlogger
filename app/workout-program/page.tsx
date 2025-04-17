@@ -32,8 +32,8 @@ interface Exercise {
   name: string;
   sets: number;
   reps: number;
-  weight: number;
   notes?: string;
+  weights?: number[];
 }
 
 interface WorkoutDay {
@@ -42,11 +42,17 @@ interface WorkoutDay {
   exercises: Exercise[];
 }
 
+interface Week {
+  id: string;
+  weekNumber: number;
+  days: WorkoutDay[];
+}
+
 interface WorkoutProgram {
   id: string;
   name: string;
   description: string;
-  days: WorkoutDay[];
+  weeks: Week[];
   createdAt: string;
 }
 
@@ -59,6 +65,7 @@ export default function WorkoutProgramPage() {
   // Form states
   const [programName, setProgramName] = useState('');
   const [programDescription, setProgramDescription] = useState('');
+  const [programWeeks, setProgramWeeks] = useState(4);
   const [showForm, setShowForm] = useState(false);
   const [currentDay, setCurrentDay] = useState<WorkoutDay>({
     id: crypto.randomUUID(),
@@ -71,10 +78,18 @@ export default function WorkoutProgramPage() {
     name: '',
     sets: 3,
     reps: 10,
-    weight: 0,
-    notes: ''
+    notes: '',
+    weights: []
   });
   const [isCustomExercise, setIsCustomExercise] = useState(false);
+  
+  // Pagination state
+  const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
+  const [currentWeek, setCurrentWeek] = useState(1);
+  
+  // Weight input state
+  const [weightInputs, setWeightInputs] = useState<Record<string, number[]>>({});
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
     // In a real app, this would fetch from an API
@@ -102,8 +117,8 @@ export default function WorkoutProgramPage() {
       name: '',
       sets: 3,
       reps: 10,
-      weight: 0,
-      notes: ''
+      notes: '',
+      weights: []
     });
     
     setMessage('');
@@ -142,11 +157,28 @@ export default function WorkoutProgramPage() {
       return;
     }
     
+    // Create weeks based on the number of weeks selected
+    const weeks: Week[] = [];
+    for (let i = 1; i <= programWeeks; i++) {
+      weeks.push({
+        id: crypto.randomUUID(),
+        weekNumber: i,
+        days: days.map(day => ({
+          ...day,
+          id: crypto.randomUUID(),
+          exercises: day.exercises.map(exercise => ({
+            ...exercise,
+            id: crypto.randomUUID()
+          }))
+        }))
+      });
+    }
+    
     const newProgram: WorkoutProgram = {
       id: crypto.randomUUID(),
       name: programName,
       description: programDescription,
-      days: days,
+      weeks: weeks,
       createdAt: new Date().toISOString()
     };
     
@@ -157,6 +189,7 @@ export default function WorkoutProgramPage() {
     // Reset form
     setProgramName('');
     setProgramDescription('');
+    setProgramWeeks(4);
     setDays([]);
     setShowForm(false);
     setMessage('Program saved successfully!');
@@ -183,15 +216,6 @@ export default function WorkoutProgramPage() {
     }, 3000);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
   const handleExerciseNameChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const value = e.target.value;
     if (value === 'Custom Exercise') {
@@ -207,6 +231,100 @@ export default function WorkoutProgramPage() {
         name: value
       });
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const handleProgramSelect = (programId: string) => {
+    setSelectedProgram(programId);
+    setCurrentWeek(1); // Reset to first week when selecting a new program
+    
+    // Initialize weight inputs for the selected program
+    const program = programs.find(p => p.id === programId);
+    if (program) {
+      const initialWeightInputs: Record<string, number[]> = {};
+      
+      program.weeks.forEach(week => {
+        week.days.forEach(day => {
+          day.exercises.forEach(exercise => {
+            // Initialize with existing weights or empty arrays
+            initialWeightInputs[exercise.id] = exercise.weights || Array(exercise.sets).fill(0);
+          });
+        });
+      });
+      
+      setWeightInputs(initialWeightInputs);
+    }
+  };
+
+  const handlePrevWeek = () => {
+    if (currentWeek > 1) {
+      setCurrentWeek(currentWeek - 1);
+    }
+  };
+
+  const handleNextWeek = (totalWeeks: number) => {
+    if (currentWeek < totalWeeks) {
+      setCurrentWeek(currentWeek + 1);
+    }
+  };
+
+  const handleWeightChange = (exerciseId: string, setIndex: number, value: string) => {
+    const numValue = value === '' ? 0 : parseInt(value);
+    
+    setWeightInputs(prev => {
+      const newWeights = [...(prev[exerciseId] || [])];
+      newWeights[setIndex] = numValue;
+      return { ...prev, [exerciseId]: newWeights };
+    });
+    
+    setHasUnsavedChanges(true);
+  };
+
+  const handleSaveWeights = () => {
+    if (!selectedProgram) return;
+    
+    const updatedPrograms = programs.map(program => {
+      if (program.id === selectedProgram) {
+        const updatedWeeks = program.weeks.map(week => {
+          if (week.weekNumber === currentWeek) {
+            const updatedDays = week.days.map(day => {
+              const updatedExercises = day.exercises.map(exercise => {
+                if (weightInputs[exercise.id]) {
+                  return {
+                    ...exercise,
+                    weights: [...weightInputs[exercise.id]]
+                  };
+                }
+                return exercise;
+              });
+              return { ...day, exercises: updatedExercises };
+            });
+            return { ...week, days: updatedDays };
+          }
+          return week;
+        });
+        return { ...program, weeks: updatedWeeks };
+      }
+      return program;
+    });
+    
+    setPrograms(updatedPrograms);
+    localStorage.setItem('workoutPrograms', JSON.stringify(updatedPrograms));
+    setHasUnsavedChanges(false);
+    setMessage('Weights saved successfully!');
+    
+    // Clear message after 3 seconds
+    setTimeout(() => {
+      setMessage('');
+    }, 3000);
   };
 
   if (loading) {
@@ -351,6 +469,51 @@ export default function WorkoutProgramPage() {
                 placeholder="Describe your workout program..."
               />
             </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label 
+                htmlFor="programWeeks" 
+                style={{ 
+                  display: 'block', 
+                  marginBottom: '0.5rem',
+                  fontWeight: '500',
+                  color: `rgb(var(--text-primary))`
+                }}
+              >
+                Program Length: {programWeeks} {programWeeks === 1 ? 'week' : 'weeks'}
+              </label>
+              <input
+                id="programWeeks"
+                type="range"
+                min="4"
+                max="12"
+                value={programWeeks}
+                onChange={(e) => setProgramWeeks(parseInt(e.target.value))}
+                style={{ 
+                  width: '100%', 
+                  height: '0.5rem',
+                  borderRadius: '0.25rem',
+                  backgroundColor: `rgb(var(--primary-light))`,
+                  outline: 'none',
+                  WebkitAppearance: 'none',
+                  appearance: 'none',
+                  opacity: 0.7,
+                  transition: 'opacity 0.2s',
+                  cursor: 'pointer'
+                }}
+              />
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                marginTop: '0.25rem',
+                fontSize: '0.75rem',
+                color: `rgb(var(--text-secondary))`
+              }}>
+                <span>4 weeks</span>
+                <span>8 weeks</span>
+                <span>12 weeks</span>
+              </div>
+            </div>
             
             <h3 style={{ 
               fontSize: '1.25rem', 
@@ -489,7 +652,7 @@ export default function WorkoutProgramPage() {
                             {exercise.name}
                           </span>
                           <span style={{ marginLeft: '0.5rem', color: `rgb(var(--text-secondary))` }}>
-                            ({exercise.sets} sets × {exercise.reps} reps @ {exercise.weight} lbs)
+                            ({exercise.sets} sets × {exercise.reps} reps)
                           </span>
                         </div>
                         <button
@@ -568,7 +731,7 @@ export default function WorkoutProgramPage() {
               
               <div style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(3, 1fr)', 
+                gridTemplateColumns: 'repeat(2, 1fr)', 
                 gap: '1rem',
                 marginBottom: '1rem'
               }}>
@@ -619,35 +782,6 @@ export default function WorkoutProgramPage() {
                     min="1"
                     value={currentExercise.reps}
                     onChange={(e) => setCurrentExercise({...currentExercise, reps: parseInt(e.target.value) || 0})}
-                    style={{ 
-                      width: '100%', 
-                      padding: '0.5rem', 
-                      borderRadius: '0.375rem',
-                      border: `1px solid rgb(var(--card-border))`,
-                      backgroundColor: `rgb(var(--background-rgb))`,
-                      color: `rgb(var(--text-primary))`
-                    }}
-                  />
-                </div>
-                
-                <div>
-                  <label 
-                    htmlFor="weight" 
-                    style={{ 
-                      display: 'block', 
-                      marginBottom: '0.5rem',
-                      fontWeight: '500',
-                      color: `rgb(var(--text-primary))`
-                    }}
-                  >
-                    Weight (lbs)
-                  </label>
-                  <input
-                    id="weight"
-                    type="number"
-                    min="0"
-                    value={currentExercise.weight}
-                    onChange={(e) => setCurrentExercise({...currentExercise, weight: parseInt(e.target.value) || 0})}
                     style={{ 
                       width: '100%', 
                       padding: '0.5rem', 
@@ -834,62 +968,231 @@ export default function WorkoutProgramPage() {
                   color: `rgb(var(--text-secondary))`
                 }}>
                   <span>Created: {formatDate(program.createdAt)}</span>
-                  <span>{program.days.length} workout days</span>
+                  <span>{program.weeks.length} weeks • {program.weeks[0].days.length} workout days</span>
                 </div>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {program.days.map((day) => (
-                    <div 
-                      key={day.id} 
-                      style={{ 
-                        backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : '#f0f7ff', 
-                        padding: '1rem', 
-                        borderRadius: '0.375rem',
-                        border: `1px solid rgb(var(--primary-light))`
-                      }}
-                    >
-                      <h3 style={{ 
-                        fontSize: '1.25rem', 
-                        fontWeight: '500', 
-                        color: `rgb(var(--primary))`, 
-                        marginBottom: '0.5rem' 
+                {selectedProgram === program.id ? (
+                  <div>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '1rem',
+                      padding: '0.5rem',
+                      backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : '#f0f7ff',
+                      borderRadius: '0.375rem',
+                      border: `1px solid rgb(var(--primary-light))`
+                    }}>
+                      <button
+                        onClick={handlePrevWeek}
+                        disabled={currentWeek === 1}
+                        style={{ 
+                          padding: '0.5rem',
+                          backgroundColor: currentWeek === 1 ? 'transparent' : `rgb(var(--primary))`,
+                          color: currentWeek === 1 ? `rgb(var(--text-secondary))` : 'white',
+                          borderRadius: '0.375rem',
+                          border: currentWeek === 1 ? `1px solid rgb(var(--card-border))` : 'none',
+                          cursor: currentWeek === 1 ? 'default' : 'pointer',
+                          opacity: currentWeek === 1 ? 0.5 : 1
+                        }}
+                      >
+                        Previous Week
+                      </button>
+                      
+                      <span style={{ 
+                        fontWeight: '500',
+                        color: `rgb(var(--primary))`
                       }}>
-                        {day.name}
-                      </h3>
+                        Week {currentWeek} of {program.weeks.length}
+                      </span>
+                      
+                      <button
+                        onClick={() => handleNextWeek(program.weeks.length)}
+                        disabled={currentWeek === program.weeks.length}
+                        style={{ 
+                          padding: '0.5rem',
+                          backgroundColor: currentWeek === program.weeks.length ? 'transparent' : `rgb(var(--primary))`,
+                          color: currentWeek === program.weeks.length ? `rgb(var(--text-secondary))` : 'white',
+                          borderRadius: '0.375rem',
+                          border: currentWeek === program.weeks.length ? `1px solid rgb(var(--card-border))` : 'none',
+                          cursor: currentWeek === program.weeks.length ? 'default' : 'pointer',
+                          opacity: currentWeek === program.weeks.length ? 0.5 : 1
+                        }}
+                      >
+                        Next Week
+                      </button>
+                    </div>
+                    
+                    <div style={{ 
+                      backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : '#f0f7ff', 
+                      padding: '1rem', 
+                      borderRadius: '0.375rem',
+                      border: `1px solid rgb(var(--primary-light))`
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '1rem'
+                      }}>
+                        <h3 style={{ 
+                          fontSize: '1.25rem', 
+                          fontWeight: '500', 
+                          color: `rgb(var(--primary))`
+                        }}>
+                          Week {currentWeek}
+                        </h3>
+                        
+                        <button
+                          onClick={handleSaveWeights}
+                          disabled={!hasUnsavedChanges}
+                          style={{ 
+                            padding: '0.5rem 1rem',
+                            backgroundColor: hasUnsavedChanges ? `rgb(var(--primary))` : 'transparent',
+                            color: hasUnsavedChanges ? 'white' : `rgb(var(--text-secondary))`,
+                            borderRadius: '0.375rem',
+                            border: hasUnsavedChanges ? 'none' : `1px solid rgb(var(--card-border))`,
+                            cursor: hasUnsavedChanges ? 'pointer' : 'default',
+                            opacity: hasUnsavedChanges ? 1 : 0.5
+                          }}
+                        >
+                          Save Weights
+                        </button>
+                      </div>
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {day.exercises.map((exercise) => (
+                        {program.weeks[currentWeek - 1].days.map((day) => (
                           <div 
-                            key={exercise.id} 
+                            key={day.id} 
                             style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'space-between', 
                               backgroundColor: `rgb(var(--card-bg))`, 
-                              padding: '0.5rem', 
+                              padding: '0.75rem', 
                               borderRadius: '0.375rem',
                               border: `1px solid rgb(var(--card-border))`
                             }}
                           >
-                            <div>
-                              <span style={{ color: `rgb(var(--text-primary))` }}>
-                                {exercise.name}
-                              </span>
-                              <span style={{ marginLeft: '0.5rem', color: `rgb(var(--text-secondary))` }}>
-                                {exercise.sets} sets × {exercise.reps} reps @ {exercise.weight} lbs
-                              </span>
-                              {exercise.notes && (
-                                <span style={{ color: `rgb(var(--primary))`, marginLeft: '0.5rem' }}>
-                                  ({exercise.notes})
-                                </span>
-                              )}
+                            <h4 style={{ 
+                              fontSize: '1rem', 
+                              fontWeight: '500', 
+                              color: `rgb(var(--primary))`, 
+                              marginBottom: '0.5rem' 
+                            }}>
+                              {day.name}
+                            </h4>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              {day.exercises.map((exercise) => (
+                                <div 
+                                  key={exercise.id} 
+                                  style={{ 
+                                    display: 'flex', 
+                                    flexDirection: 'column',
+                                    padding: '0.5rem', 
+                                    backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.05)' : '#f8fafc', 
+                                    borderRadius: '0.375rem',
+                                    border: `1px solid rgb(var(--card-border))`
+                                  }}
+                                >
+                                  <div style={{ 
+                                    display: 'flex', 
+                                    justifyContent: 'space-between', 
+                                    alignItems: 'center',
+                                    marginBottom: '0.5rem'
+                                  }}>
+                                    <span style={{ fontWeight: '500', color: `rgb(var(--text-primary))` }}>
+                                      {exercise.name}
+                                    </span>
+                                    <span style={{ color: `rgb(var(--text-secondary))` }}>
+                                      {exercise.sets} sets × {exercise.reps} reps
+                                    </span>
+                                  </div>
+                                  
+                                  <div style={{ 
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    gap: '0.5rem',
+                                    marginTop: '0.5rem'
+                                  }}>
+                                    {Array.from({ length: exercise.sets }).map((_, index) => (
+                                      <div 
+                                        key={index}
+                                        style={{ 
+                                          display: 'flex', 
+                                          gap: '0.5rem',
+                                          alignItems: 'center'
+                                        }}
+                                      >
+                                        <span style={{ 
+                                          fontSize: '0.875rem', 
+                                          color: `rgb(var(--text-secondary))`,
+                                          minWidth: '3rem'
+                                        }}>
+                                          Set {index + 1}:
+                                        </span>
+                                        <input
+                                          type="number"
+                                          placeholder="Weight"
+                                          value={weightInputs[exercise.id]?.[index] || ''}
+                                          onChange={(e) => handleWeightChange(exercise.id, index, e.target.value)}
+                                          style={{ 
+                                            width: '5rem', 
+                                            padding: '0.25rem 0.5rem', 
+                                            borderRadius: '0.25rem',
+                                            border: `1px solid rgb(var(--card-border))`,
+                                            backgroundColor: `rgb(var(--background-rgb))`,
+                                            color: `rgb(var(--text-primary))`,
+                                            fontSize: '0.875rem'
+                                          }}
+                                        />
+                                        <span style={{ 
+                                          fontSize: '0.875rem', 
+                                          color: `rgb(var(--text-secondary))`,
+                                          marginLeft: '0.5rem'
+                                        }}>
+                                          lbs
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  
+                                  {exercise.notes && (
+                                    <div style={{ 
+                                      fontSize: '0.875rem', 
+                                      color: `rgb(var(--text-secondary))`,
+                                      marginTop: '0.5rem',
+                                      fontStyle: 'italic'
+                                    }}>
+                                      Note: {exercise.notes}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <button
+                      onClick={() => handleProgramSelect(program.id)}
+                      style={{ 
+                        padding: '0.75rem 1rem', 
+                        backgroundColor: `rgb(var(--primary))`, 
+                        color: 'white', 
+                        borderRadius: '0.375rem', 
+                        fontWeight: '500',
+                        border: 'none',
+                        cursor: 'pointer',
+                        width: '100%',
+                        textAlign: 'center'
+                      }}
+                    >
+                      View Program
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
