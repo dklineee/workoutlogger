@@ -4,18 +4,28 @@
 
 :root {
   --foreground-rgb: 255, 255, 255;
-  --background-rgb: 40, 40, 40;
+  --background-rgb: 240, 247, 255;
+  --card-bg: 255, 255, 255;
+  --card-border: 229, 231, 235;
+  --primary: 37, 99, 235;
+  --primary-light: 191, 219, 254;
+  --text-primary: 17, 24, 39;
+  --text-secondary: 107, 114, 128;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-rgb: 0, 0, 0;
-  }
+.dark {
+  --foreground-rgb: 255, 255, 255;
+  --background-rgb: 17, 24, 39;
+  --card-bg: 31, 41, 55;
+  --card-border: 75, 85, 99;
+  --primary: 59, 130, 246;
+  --primary-light: 147, 197, 253;
+  --text-primary: 243, 244, 246;
+  --text-secondary: 156, 163, 175;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
+  color: rgb(var(--text-primary));
   background: rgb(var(--background-rgb));
 }
 

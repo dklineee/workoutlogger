@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useTheme } from '../context/ThemeContext';
 
 interface WorkoutSet {
   id: string;
@@ -13,9 +13,57 @@ interface WorkoutSet {
   notes?: string;
 }
 
+const COMMON_EXERCISES = [
+  // Chest
+  'Bench Press',
+  'Incline Bench Press',
+  'Decline Bench Press',
+  'Dumbbell Press',
+  'Incline Dumbbell Press',
+  'Push-Ups',
+  'Chest Flyes',
+  'Cable Flyes',
+  // Back
+  'Pull-Ups',
+  'Lat Pulldown',
+  'Barbell Rows',
+  'Dumbbell Rows',
+  'Face Pulls',
+  'Deadlift',
+  'Romanian Deadlift',
+  // Shoulders
+  'Overhead Press',
+  'Lateral Raises',
+  'Front Raises',
+  'Face Pulls',
+  'Upright Rows',
+  // Arms
+  'Bicep Curls',
+  'Hammer Curls',
+  'Tricep Pushdowns',
+  'Skull Crushers',
+  'Preacher Curls',
+  // Legs
+  'Squats',
+  'Leg Press',
+  'Lunges',
+  'Leg Extensions',
+  'Leg Curls',
+  'Calf Raises',
+  // Core
+  'Plank',
+  'Crunches',
+  'Russian Twists',
+  'Leg Raises',
+  'Ab Wheel Rollouts',
+  // Custom option
+  'Custom Exercise'
+];
+
 export default function WorkoutLogger() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { theme } = useTheme();
   const [workoutDate, setWorkoutDate] = useState('');
   const [workoutType, setWorkoutType] = useState('');
   const [sets, setSets] = useState<WorkoutSet[]>([]);
@@ -28,6 +76,7 @@ export default function WorkoutLogger() {
   const [workoutNotes, setWorkoutNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [isCustomExercise, setIsCustomExercise] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -42,9 +91,9 @@ export default function WorkoutLogger() {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center', 
-        backgroundColor: '#f0f7ff' 
+        backgroundColor: `rgb(var(--background-rgb))` 
       }}>
-        <div style={{ color: '#2563eb', fontSize: '1.25rem' }}>Loading...</div>
+        <div style={{ color: `rgb(var(--primary))`, fontSize: '1.25rem' }}>Loading...</div>
       </main>
     );
   }
@@ -123,10 +172,20 @@ export default function WorkoutLogger() {
     }
   };
 
+  const handleExerciseSelect = (exercise: string) => {
+    if (exercise === 'Custom Exercise') {
+      setIsCustomExercise(true);
+      setCurrentSet({ ...currentSet, exerciseName: '' });
+    } else {
+      setIsCustomExercise(false);
+      setCurrentSet({ ...currentSet, exerciseName: exercise });
+    }
+  };
+
   return (
     <main style={{ 
       minHeight: '100vh', 
-      backgroundColor: '#f0f7ff', 
+      backgroundColor: `rgb(var(--background-rgb))`, 
       padding: '2rem 1rem' 
     }}>
       <div style={{ 
@@ -134,13 +193,14 @@ export default function WorkoutLogger() {
         margin: '0 auto' 
       }}>
         <div style={{ 
-          backgroundColor: 'white', 
+          backgroundColor: `rgb(var(--card-bg))`, 
           borderRadius: '0.5rem', 
           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', 
-          overflow: 'hidden' 
+          overflow: 'hidden',
+          border: `1px solid rgb(var(--card-border))`
         }}>
           <div style={{ 
-            backgroundColor: '#2563eb', 
+            backgroundColor: `rgb(var(--primary))`, 
             padding: '1rem 1.5rem' 
           }}>
             <div style={{ 
@@ -155,34 +215,6 @@ export default function WorkoutLogger() {
               }}>
                 Workout Log
               </h1>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <Link 
-                  href="/workouts" 
-                  style={{ 
-                    padding: '0.5rem 1rem', 
-                    backgroundColor: 'white', 
-                    color: '#2563eb', 
-                    borderRadius: '0.375rem', 
-                    fontWeight: '500',
-                    textDecoration: 'none'
-                  }}
-                >
-                  View Workouts
-                </Link>
-                <Link 
-                  href="/" 
-                  style={{ 
-                    padding: '0.5rem 1rem', 
-                    backgroundColor: '#3b82f6', 
-                    color: 'white', 
-                    borderRadius: '0.375rem', 
-                    fontWeight: '500',
-                    textDecoration: 'none'
-                  }}
-                >
-                  Back to Login
-                </Link>
-              </div>
             </div>
           </div>
           
@@ -200,7 +232,7 @@ export default function WorkoutLogger() {
                     fontSize: '0.875rem', 
                     fontWeight: '500', 
                     marginBottom: '0.5rem', 
-                    color: '#374151' 
+                    color: `rgb(var(--text-primary))` 
                   }}
                 >
                   Date
@@ -213,9 +245,10 @@ export default function WorkoutLogger() {
                   style={{ 
                     width: '100%', 
                     padding: '0.5rem', 
-                    border: '1px solid #d1d5db', 
+                    border: `1px solid rgb(var(--card-border))`, 
                     borderRadius: '0.375rem',
-                    backgroundColor: 'white'
+                    backgroundColor: `rgb(var(--card-bg))`,
+                    color: `rgb(var(--text-primary))`
                   }}
                   required
                 />
@@ -229,7 +262,7 @@ export default function WorkoutLogger() {
                     fontSize: '0.875rem', 
                     fontWeight: '500', 
                     marginBottom: '0.5rem', 
-                    color: '#374151' 
+                    color: `rgb(var(--text-primary))` 
                   }}
                 >
                   Workout Type
@@ -242,9 +275,10 @@ export default function WorkoutLogger() {
                   style={{ 
                     width: '100%', 
                     padding: '0.5rem', 
-                    border: '1px solid #d1d5db', 
+                    border: `1px solid rgb(var(--card-border))`, 
                     borderRadius: '0.375rem',
-                    backgroundColor: 'white'
+                    backgroundColor: `rgb(var(--card-bg))`,
+                    color: `rgb(var(--text-primary))`
                   }}
                   placeholder="e.g., Push Day, Pull Day, Leg Day"
                   required
@@ -253,15 +287,15 @@ export default function WorkoutLogger() {
             </div>
 
             <div style={{ 
-              backgroundColor: '#f0f7ff', 
+              backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : '#f0f7ff', 
               padding: '1.5rem', 
               borderRadius: '0.5rem', 
-              border: '1px solid #bfdbfe' 
+              border: `1px solid rgb(var(--primary-light))` 
             }}>
               <h2 style={{ 
                 fontSize: '1.125rem', 
                 fontWeight: '600', 
-                color: '#1e40af', 
+                color: `rgb(var(--primary))`, 
                 marginBottom: '1rem' 
               }}>
                 Exercise Sets
@@ -270,31 +304,56 @@ export default function WorkoutLogger() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <label 
-                    htmlFor="exerciseName" 
+                    htmlFor="exerciseSelect" 
                     style={{ 
                       display: 'block', 
                       fontSize: '0.875rem', 
                       fontWeight: '500', 
                       marginBottom: '0.5rem', 
-                      color: '#374151' 
+                      color: `rgb(var(--text-primary))` 
                     }}
                   >
-                    Exercise Name
+                    Select Exercise
                   </label>
-                  <input
-                    type="text"
-                    id="exerciseName"
-                    value={currentSet.exerciseName}
-                    onChange={(e) => setCurrentSet({ ...currentSet, exerciseName: e.target.value })}
+                  <select
+                    id="exerciseSelect"
+                    value={isCustomExercise ? 'Custom Exercise' : currentSet.exerciseName}
+                    onChange={(e) => handleExerciseSelect(e.target.value)}
                     style={{ 
                       width: '100%', 
                       padding: '0.5rem', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid rgb(var(--card-border))`, 
                       borderRadius: '0.375rem',
-                      backgroundColor: 'white'
+                      backgroundColor: `rgb(var(--card-bg))`,
+                      color: `rgb(var(--text-primary))`,
+                      marginBottom: isCustomExercise ? '0.5rem' : '0'
                     }}
-                    placeholder="e.g., Bench Press, Squats, Deadlifts"
-                  />
+                  >
+                    <option value="">Select an exercise...</option>
+                    {COMMON_EXERCISES.map((exercise) => (
+                      <option key={exercise} value={exercise}>
+                        {exercise}
+                      </option>
+                    ))}
+                  </select>
+
+                  {isCustomExercise && (
+                    <input
+                      type="text"
+                      id="exerciseName"
+                      value={currentSet.exerciseName}
+                      onChange={(e) => setCurrentSet({ ...currentSet, exerciseName: e.target.value })}
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.5rem', 
+                        border: `1px solid rgb(var(--card-border))`, 
+                        borderRadius: '0.375rem',
+                        backgroundColor: `rgb(var(--card-bg))`,
+                        color: `rgb(var(--text-primary))`
+                      }}
+                      placeholder="Enter custom exercise name"
+                    />
+                  )}
                 </div>
                 
                 <div style={{ 
@@ -310,7 +369,7 @@ export default function WorkoutLogger() {
                         fontSize: '0.875rem', 
                         fontWeight: '500', 
                         marginBottom: '0.5rem', 
-                        color: '#374151' 
+                        color: `rgb(var(--text-primary))` 
                       }}
                     >
                       Reps
@@ -323,9 +382,10 @@ export default function WorkoutLogger() {
                       style={{ 
                         width: '100%', 
                         padding: '0.5rem', 
-                        border: '1px solid #d1d5db', 
+                        border: `1px solid rgb(var(--card-border))`, 
                         borderRadius: '0.375rem',
-                        backgroundColor: 'white'
+                        backgroundColor: `rgb(var(--card-bg))`,
+                        color: `rgb(var(--text-primary))`
                       }}
                       min="1"
                       placeholder="Reps"
@@ -340,7 +400,7 @@ export default function WorkoutLogger() {
                         fontSize: '0.875rem', 
                         fontWeight: '500', 
                         marginBottom: '0.5rem', 
-                        color: '#374151' 
+                        color: `rgb(var(--text-primary))` 
                       }}
                     >
                       Weight (lbs)
@@ -353,9 +413,10 @@ export default function WorkoutLogger() {
                       style={{ 
                         width: '100%', 
                         padding: '0.5rem', 
-                        border: '1px solid #d1d5db', 
+                        border: `1px solid rgb(var(--card-border))`, 
                         borderRadius: '0.375rem',
-                        backgroundColor: 'white'
+                        backgroundColor: `rgb(var(--card-bg))`,
+                        color: `rgb(var(--text-primary))`
                       }}
                       min="0"
                       placeholder="Weight"
@@ -371,7 +432,7 @@ export default function WorkoutLogger() {
                       fontSize: '0.875rem', 
                       fontWeight: '500', 
                       marginBottom: '0.5rem', 
-                      color: '#374151' 
+                      color: `rgb(var(--text-primary))` 
                     }}
                   >
                     Set Notes (optional)
@@ -384,9 +445,10 @@ export default function WorkoutLogger() {
                     style={{ 
                       width: '100%', 
                       padding: '0.5rem', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid rgb(var(--card-border))`, 
                       borderRadius: '0.375rem',
-                      backgroundColor: 'white'
+                      backgroundColor: `rgb(var(--card-bg))`,
+                      color: `rgb(var(--text-primary))`
                     }}
                     placeholder="e.g., felt heavy, form was good"
                   />
@@ -397,7 +459,7 @@ export default function WorkoutLogger() {
                   onClick={handleAddSet}
                   style={{ 
                     padding: '0.5rem 1rem', 
-                    backgroundColor: '#2563eb', 
+                    backgroundColor: `rgb(var(--primary))`, 
                     color: 'white', 
                     borderRadius: '0.375rem', 
                     fontWeight: '500',
@@ -411,15 +473,15 @@ export default function WorkoutLogger() {
 
             {sets.length > 0 && (
               <div style={{ 
-                backgroundColor: 'white', 
+                backgroundColor: `rgb(var(--card-bg))`, 
                 padding: '1.5rem', 
                 borderRadius: '0.5rem', 
-                border: '1px solid #e5e7eb' 
+                border: `1px solid rgb(var(--card-border))` 
               }}>
                 <h3 style={{ 
                   fontSize: '1.125rem', 
                   fontWeight: '500', 
-                  color: '#111827', 
+                  color: `rgb(var(--text-primary))`, 
                   marginBottom: '1rem' 
                 }}>
                   Current Exercise Sets:
@@ -431,10 +493,10 @@ export default function WorkoutLogger() {
                       style={{ 
                         display: 'flex', 
                         flexDirection: 'column', 
-                        backgroundColor: '#f0f7ff', 
+                        backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : '#f0f7ff', 
                         padding: '1rem', 
                         borderRadius: '0.375rem', 
-                        border: '1px solid #bfdbfe' 
+                        border: `1px solid rgb(var(--primary-light))` 
                       }}
                     >
                       <div style={{ 
@@ -445,11 +507,11 @@ export default function WorkoutLogger() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span style={{ 
                             fontWeight: '500', 
-                            color: '#1e40af' 
+                            color: `rgb(var(--primary))` 
                           }}>
                             {set.exerciseName}:
                           </span>
-                          <span style={{ color: '#374151' }}>
+                          <span style={{ color: `rgb(var(--text-primary))` }}>
                             {set.reps} reps @ {set.weight} lbs
                           </span>
                         </div>
@@ -470,7 +532,7 @@ export default function WorkoutLogger() {
                       {set.notes && (
                         <div style={{ 
                           fontSize: '0.875rem', 
-                          color: '#4b5563', 
+                          color: `rgb(var(--text-secondary))`, 
                           marginTop: '0.5rem' 
                         }}>
                           Note: {set.notes}
@@ -490,7 +552,7 @@ export default function WorkoutLogger() {
                   fontSize: '0.875rem', 
                   fontWeight: '500', 
                   marginBottom: '0.5rem', 
-                  color: '#374151' 
+                  color: `rgb(var(--text-primary))` 
                 }}
               >
                 Workout Notes
@@ -502,9 +564,10 @@ export default function WorkoutLogger() {
                 style={{ 
                   width: '100%', 
                   padding: '0.5rem', 
-                  border: '1px solid #d1d5db', 
+                  border: `1px solid rgb(var(--card-border))`, 
                   borderRadius: '0.375rem',
-                  backgroundColor: 'white',
+                  backgroundColor: `rgb(var(--card-bg))`,
+                  color: `rgb(var(--text-primary))`,
                   minHeight: '6rem'
                 }}
                 rows={3}
@@ -529,7 +592,7 @@ export default function WorkoutLogger() {
               style={{ 
                 width: '100%', 
                 padding: '0.75rem 1rem', 
-                backgroundColor: '#2563eb', 
+                backgroundColor: `rgb(var(--primary))`, 
                 color: 'white', 
                 borderRadius: '0.375rem', 
                 fontWeight: '500',
