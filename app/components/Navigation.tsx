@@ -2,19 +2,45 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useTheme } from '../context/ThemeContext';
 
 export default function Navigation() {
   const { data: session, status } = useSession();
   const { theme, toggleTheme } = useTheme();
+  const pathname = usePathname();
+
+  // Don't render navigation on auth pages
+  if (pathname === '/' || pathname === '/register' || pathname === '/auth/error') {
+    return null;
+  }
 
   if (status === 'loading') {
-    return null;
+    return (
+      <nav style={{ 
+        backgroundColor: `rgb(var(--card-bg))`, 
+        padding: '1rem', 
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        borderBottom: `1px solid rgb(var(--card-border))`
+      }}>
+        <div style={{ 
+          maxWidth: '48rem', 
+          margin: '0 auto', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center' 
+        }}>
+          <div style={{ color: `rgb(var(--text-secondary))` }}>Loading...</div>
+        </div>
+      </nav>
+    );
   }
 
   if (!session) {
     return null;
   }
+
+  const isActive = (path: string) => pathname === path;
 
   return (
     <nav style={{ 
@@ -31,38 +57,70 @@ export default function Navigation() {
         alignItems: 'center' 
       }}>
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <Link 
-            href="/workout-logger" 
-            style={{ 
-              color: `rgb(var(--text-primary))`, 
-              textDecoration: 'none',
-              fontWeight: '500'
-            }}
-          >
-            Log Workout
-          </Link>
-          <Link 
+
+          {/* <Link 
             href="/workouts" 
             style={{ 
-              color: `rgb(var(--text-primary))`, 
+              color: isActive('/workouts') 
+                ? `rgb(var(--primary))` 
+                : `rgb(var(--text-primary))`, 
               textDecoration: 'none',
-              fontWeight: '500'
+              fontWeight: '500',
+              borderBottom: isActive('/workouts') 
+                ? `2px solid rgb(var(--primary))` 
+                : '2px solid transparent',
+              paddingBottom: '0.25rem',
+              transition: 'all 0.2s'
             }}
           >
             View Workouts
-          </Link>
+          </Link> */}
           <Link 
             href="/workout-program" 
             style={{ 
-              color: `rgb(var(--text-primary))`, 
+              color: isActive('/workout-program') 
+                ? `rgb(var(--primary))` 
+                : `rgb(var(--text-primary))`, 
               textDecoration: 'none',
-              fontWeight: '500'
+              fontWeight: '500',
+              borderBottom: isActive('/workout-program') 
+                ? `2px solid rgb(var(--primary))` 
+                : '2px solid transparent',
+              paddingBottom: '0.25rem',
+              transition: 'all 0.2s'
             }}
           >
             Workout Programs
           </Link>
+          <Link 
+            href="/progress" 
+            style={{ 
+              color: isActive('/progress') 
+                ? `rgb(var(--primary))` 
+                : `rgb(var(--text-primary))`, 
+              textDecoration: 'none',
+              fontWeight: '500',
+              borderBottom: isActive('/progress') 
+                ? `2px solid rgb(var(--primary))` 
+                : '2px solid transparent',
+              paddingBottom: '0.25rem',
+              transition: 'all 0.2s'
+            }}
+          >
+            Progress
+          </Link>
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <span style={{ 
+            color: `rgb(var(--text-secondary))`, 
+            fontSize: '0.875rem',
+            display: 'none',
+            '@media (min-width: 640px)': {
+              display: 'block'
+            }
+          }}>
+            {session.user?.email}
+          </span>
           <button
             onClick={toggleTheme}
             style={{ 
@@ -74,7 +132,8 @@ export default function Navigation() {
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              transition: 'all 0.2s'
             }}
             aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
           >
@@ -97,7 +156,8 @@ export default function Navigation() {
               borderRadius: '0.375rem', 
               fontWeight: '500',
               border: '1px solid #dc2626',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'all 0.2s'
             }}
           >
             Sign Out
@@ -106,4 +166,4 @@ export default function Navigation() {
       </div>
     </nav>
   );
-} 
+}
